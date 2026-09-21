@@ -46,7 +46,6 @@ const messages=[
 "Bon… je tente encore une fois 😳","Je lâche pas l’affaire tout de suite 😌","Allez… juste un dîner ? ❤️"
 ];
 let noCount=0;
-let pendingTimer=null;
 const ask=document.getElementById("ask"),success=document.getElementById("success"),question=document.getElementById("question"),yesBtn=document.getElementById("yesBtn"),noBtn=document.getElementById("noBtn");
 
 function burst(count=12){
@@ -62,29 +61,24 @@ function burst(count=12){
   }
 }
 
-async function sendFinalResponse(response){
+async function sendResponse(response){
   try{
-    await fetch(API_URL,{
+    const r=await fetch(API_URL,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({response,timestamp:new Date().toISOString()})
     });
+    if(!r.ok) console.warn("Notification non envoyée:",r.status);
   }catch(e){
     console.warn("Notification non envoyée:",e);
   }
 }
 
-function scheduleFinalNo(){
-  clearTimeout(pendingTimer);
-  pendingTimer=setTimeout(()=>sendFinalResponse("Non"),5000);
-}
-
 yesBtn.addEventListener("click",()=>{
-  clearTimeout(pendingTimer);
   ask.style.display="none";
   success.style.display="block";
   burst(28);
-  sendFinalResponse("Oui");
+  sendResponse("Oui");
 });
 
 noBtn.addEventListener("click",()=>{
@@ -93,7 +87,13 @@ noBtn.addEventListener("click",()=>{
   if(noCount%7===0) question.animate([{transform:"scale(1)"},{transform:"scale(1.05)"},{transform:"scale(1)"}],{duration:450});
   noBtn.style.transform="scale("+Math.max(.84,1-(noCount%12)*.012)+")";
   yesBtn.style.transform="scale("+Math.min(1.13,1+(noCount%12)*.007)+")";
-  scheduleFinalNo();
+
+  // Le NON final est enregistré exactement au 20e clic.
+  if(noCount===20){
+    sendResponse("Non");
+    noBtn.disabled=true;
+    noBtn.textContent="Non enregistré 🙈";
+  }
 });
 </script>
 </body>
